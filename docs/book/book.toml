@@ -1,0 +1,9 @@
+[book]
+authors = ["plaid-client-rs Contributors"]
+language = "en"
+multilingual = false
+src = "src"
+title = "plaid-client-rs User Guide"
+
+[output.html]
+git-repository-url = "https://github.com/johnathonfox/plaid-client-rs"
