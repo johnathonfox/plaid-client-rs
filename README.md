@@ -11,9 +11,11 @@ A modern, async, type-safe Rust client for the [Plaid API](https://plaid.com/doc
 - ✅ Async/await via `tokio` + `reqwest`
 - ✅ Strongly-typed errors matching Plaid's error taxonomy
 - ✅ Secret-safe (tokens wrapped with `secrecy`)
+- ✅ Core endpoints: Link token, item exchange, Auth, balances, transactions sync (see ADR-0005)
+- ✅ Middleware support — logging, retry, rate-limiting (see ADR-0003)
+- ✅ Webhook signature verification — ES256 JWT (see ADR-0004)
+- ✅ Mock-server integration tests
 - 🚧 Full OpenAPI coverage (generated + hand-curated) — see ADR-0001
-- 🚧 Middleware support (logging, retry, rate-limiting)
-- 🚧 Mock-server integration tests
 
 ## Quick Start
 

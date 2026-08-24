@@ -30,6 +30,10 @@ pub enum PlaidError {
     #[error("serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
+    /// Webhook signature verification failed (see ADR-0004).
+    #[error("webhook verification failed: {0}")]
+    WebhookVerification(String),
+
     /// An unknown or unexpected error occurred.
     #[error("unknown error: {0}")]
     Unknown(String),

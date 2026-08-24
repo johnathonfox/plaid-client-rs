@@ -33,8 +33,17 @@ A change is not done until all four pass. `cargo deny check` and
 - **Errors**: library code returns `PlaidError` (see `src/error.rs`); don't
   introduce `anyhow` in library code.
 - **API surface**: models live in `src/models/`, generated from Plaid's
-  OpenAPI spec per ADR-0001 (`scripts/generate_from_openapi.sh`). Hand-edit
-  generated code only for Rust idioms, and say so in the commit message.
+  OpenAPI spec per ADR-0001 (`scripts/generate_from_openapi.sh`); until the
+  generator pipeline lands, models are hand-curated incrementally per
+  ADR-0005. Hand-edit generated code only for Rust idioms, and say so in
+  the commit message.
+- **Middleware**: cross-cutting request behavior (logging, retry, rate
+  limiting) goes through the middleware chain in `src/middleware/`
+  (ADR-0003), registered on `Config::middleware` — not bolted into
+  endpoint code.
+- **Webhooks**: webhook handling must verify Plaid's ES256 JWT via
+  `PlaidClient::verify_webhook` (ADR-0004); never parse webhook bodies
+  without verification.
 - **Async stack**: `tokio` + `reqwest` (rustls) per ADR-0002. Don't add a
   second runtime or HTTP client.
 

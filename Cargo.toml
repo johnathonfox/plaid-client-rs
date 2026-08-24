@@ -19,6 +19,10 @@ tokio = { version = "1.40", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1"
 secrecy = { version = "0.10", features = ["serde"] }
 url = "2.5"
+async-trait = "0.1.92"
+jsonwebtoken = "9"
+sha2 = "0.10.9"
+hex = "0.4.3"
 
 [dev-dependencies]
 wiremock = "0.6"

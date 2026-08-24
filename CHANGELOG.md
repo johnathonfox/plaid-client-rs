@@ -12,7 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Core `PlaidClient` with async HTTP support
 - Request pipeline: JSON POST with `client_id`/`secret` body injection and Plaid error-body mapping to `PlaidError::Api`
 - Optional `Config::base_url` override for pointing the client at a mock server
+- Middleware chain (`Config::middleware`) with `TracingLogger`, `RetryPolicy` (exponential backoff on 429/5xx), and `RateLimiter` built-ins — ADR-0003
+- Webhook signature verification (`PlaidClient::verify_webhook`) using ES256 JWTs and `/webhook_verification_key/get` — ADR-0004; adds `PlaidError::WebhookVerification`
+- Endpoints: `link_token_create`, `item_public_token_exchange`, `auth_get`, `accounts_balance_get`, `transactions_sync`, `webhook_verification_key_get` — ADR-0005
 - `sandbox_public_token_create` endpoint (`/sandbox/public_token/create`)
-- Mock-server integration tests for the sandbox public token flow
+- Mock-server integration tests covering endpoints, middleware, and webhook verification
+- Architecture diagram (`docs/diagrams/architecture.{mmd,png}`)
 - OpenAPI-generated request/response models
 - Error types matching Plaid API taxonomy

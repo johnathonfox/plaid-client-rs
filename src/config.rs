@@ -1,6 +1,8 @@
 //! Client configuration and environment selection.
 
+use crate::middleware::Middleware;
 use secrecy::SecretString;
+use std::sync::Arc;
 use std::time::Duration;
 use url::Url;
 
@@ -28,6 +30,9 @@ pub struct Config {
     /// Base URL override. When set, takes precedence over `environment`
     /// (useful for tests against a mock server). Defaults to `None`.
     pub base_url: Option<Url>,
+    /// Middleware chain wrapping every request, outermost first.
+    /// Defaults to empty. See ADR-0003.
+    pub middleware: Vec<Arc<dyn Middleware>>,
     /// Request timeout. Defaults to 30 seconds.
     pub timeout: Duration,
 }
@@ -39,6 +44,7 @@ impl Default for Config {
             secret: SecretString::from(""),
             environment: Environment::Sandbox,
             base_url: None,
+            middleware: Vec::new(),
             timeout: Duration::from_secs(30),
         }
     }

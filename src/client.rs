@@ -1,9 +1,11 @@
 //! The main Plaid API client.
 
+use crate::middleware::{Next, Request};
 use crate::{Config, PlaidError};
 use reqwest::Client;
 use secrecy::{ExposeSecret, SecretString};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::Value;
 use std::borrow::Cow;
 use std::sync::Arc;
 
@@ -16,7 +18,7 @@ pub struct PlaidClient {
 }
 
 #[derive(Debug)]
-struct PlaidClientInner {
+pub(crate) struct PlaidClientInner {
     http: Client,
     config: Config,
 }
@@ -28,6 +30,41 @@ struct PlaidErrorBody {
     error_code: String,
     error_message: String,
     request_id: String,
+}
+
+/// The terminal send at the end of the middleware chain: performs the
+/// actual HTTP POST and maps the response.
+pub(crate) async fn send(inner: &PlaidClientInner, request: &Request) -> Result<Value, PlaidError> {
+    let url = format!("{}{}", inner.base_url().trim_end_matches('/'), request.path);
+    let response = inner.http.post(&url).json(&request.body).send().await?;
+
+    if response.status().is_success() {
+        Ok(response.json::<Value>().await?)
+    } else {
+        let status = response.status();
+        let text = response.text().await?;
+        match serde_json::from_str::<PlaidErrorBody>(&text) {
+            Ok(body) => Err(PlaidError::Api {
+                error_type: body.error_type,
+                error_code: body.error_code,
+                error_message: body.error_message,
+                request_id: body.request_id,
+            }),
+            Err(_) => Err(PlaidError::Unknown(format!("HTTP {status}: {text}"))),
+        }
+    }
+}
+
+impl PlaidClientInner {
+    fn base_url(&self) -> Cow<'_, str> {
+        match &self.config.base_url {
+            Some(url) => Cow::Borrowed(url.as_str()),
+            None => match self.config.environment {
+                crate::Environment::Sandbox => Cow::Borrowed("https://sandbox.plaid.com"),
+                crate::Environment::Production => Cow::Borrowed("https://production.plaid.com"),
+            },
+        }
+    }
 }
 
 impl PlaidClient {
@@ -51,21 +88,17 @@ impl PlaidClient {
     /// `Config::base_url` override when set.
     #[must_use]
     pub fn base_url(&self) -> Cow<'_, str> {
-        match &self.inner.config.base_url {
-            Some(url) => Cow::Borrowed(url.as_str()),
-            None => match self.inner.config.environment {
-                crate::Environment::Sandbox => Cow::Borrowed("https://sandbox.plaid.com"),
-                crate::Environment::Production => Cow::Borrowed("https://production.plaid.com"),
-            },
-        }
+        self.inner.base_url()
     }
 
     /// POST a JSON body to a Plaid endpoint, merging `client_id` and
     /// `secret` into the request body as Plaid expects.
     ///
-    /// On 2xx the response is deserialized into `R`. On non-2xx the
-    /// Plaid error body is mapped to [`PlaidError::Api`], falling back to
-    /// [`PlaidError::Unknown`] when the body is not a Plaid error.
+    /// The request runs through the middleware chain configured on
+    /// [`Config::middleware`]. On 2xx the response is deserialized into
+    /// `R`. On non-2xx the Plaid error body is mapped to
+    /// [`PlaidError::Api`], falling back to [`PlaidError::Unknown`] when
+    /// the body is not a Plaid error.
     pub(crate) async fn post<B, R>(&self, path: &str, body: &B) -> Result<R, PlaidError>
     where
         B: Serialize,
@@ -78,29 +111,16 @@ impl PlaidClient {
         map.insert("client_id".into(), self.client_id().expose_secret().into());
         map.insert("secret".into(), self.secret().expose_secret().into());
 
-        let url = format!("{}{path}", self.base_url().trim_end_matches('/'));
-        let response = self.http().post(&url).json(&value).send().await?;
-
-        if response.status().is_success() {
-            Ok(response.json::<R>().await?)
-        } else {
-            let status = response.status();
-            let text = response.text().await?;
-            match serde_json::from_str::<PlaidErrorBody>(&text) {
-                Ok(body) => Err(PlaidError::Api {
-                    error_type: body.error_type,
-                    error_code: body.error_code,
-                    error_message: body.error_message,
-                    request_id: body.request_id,
-                }),
-                Err(_) => Err(PlaidError::Unknown(format!("HTTP {status}: {text}"))),
-            }
-        }
-    }
-
-    /// Returns a reference to the underlying HTTP client.
-    pub(crate) fn http(&self) -> &Client {
-        &self.inner.http
+        let request = Request {
+            path: path.to_owned(),
+            body: value,
+        };
+        let next = Next {
+            chain: &self.inner.config.middleware,
+            client: &self.inner,
+        };
+        let value = next.run(&request).await?;
+        Ok(serde_json::from_value(value)?)
     }
 
     /// Returns the client ID.

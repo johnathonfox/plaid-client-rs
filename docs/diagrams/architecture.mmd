@@ -1,0 +1,26 @@
+%% plaid-client-rs architecture
+%% Rendered to architecture.svg — keep both in sync.
+graph TD
+    subgraph Library["plaid-client-rs"]
+        Config["config<br/>Config · Environment"]
+        Client["client<br/>PlaidClient · send()"]
+        Endpoints["endpoints<br/>link · item · auth · accounts<br/>transactions · sandbox · webhooks"]
+        Middleware["middleware<br/>Middleware trait · Next<br/>TracingLogger · RetryPolicy · RateLimiter"]
+        Models["models<br/>hand-curated serde types"]
+        Webhooks["webhooks<br/>WebhookEnvelope · ES256 verify"]
+        Error["error<br/>PlaidError"]
+    end
+
+    User["user application"]
+    Plaid["Plaid API"]
+
+    User --> Config
+    User --> Endpoints
+    Endpoints --> Client
+    Endpoints --> Models
+    Client --> Middleware
+    Middleware --> Error
+    Middleware --> Plaid
+    Endpoints --> Webhooks
+    Webhooks --> Models
+    Client --> Error
