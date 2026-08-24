@@ -2,6 +2,7 @@
 
 use secrecy::SecretString;
 use std::time::Duration;
+use url::Url;
 
 /// Plaid API environment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,6 +25,9 @@ pub struct Config {
     pub secret: SecretString,
     /// API environment.
     pub environment: Environment,
+    /// Base URL override. When set, takes precedence over `environment`
+    /// (useful for tests against a mock server). Defaults to `None`.
+    pub base_url: Option<Url>,
     /// Request timeout. Defaults to 30 seconds.
     pub timeout: Duration,
 }
@@ -34,6 +38,7 @@ impl Default for Config {
             client_id: SecretString::from(""),
             secret: SecretString::from(""),
             environment: Environment::Sandbox,
+            base_url: None,
             timeout: Duration::from_secs(30),
         }
     }
