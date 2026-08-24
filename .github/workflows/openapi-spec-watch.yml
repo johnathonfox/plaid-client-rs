@@ -1,0 +1,75 @@
+name: OpenAPI Spec Watch
+
+# Daily check for changes to Plaid's OpenAPI spec (the source of truth
+# for models per ADR-0001). When the upstream spec changes, this opens
+# (or comments on) a tracking issue so the hand-curated models in
+# src/models/ can be reviewed for drift.
+
+on:
+  schedule:
+    - cron: "23 6 * * *" # daily at 06:23 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check-spec:
+    name: Check Plaid OpenAPI spec for changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download upstream spec
+        run: |
+          curl -sfL \
+            https://raw.githubusercontent.com/plaid/plaid-openapi/master/2020-09-14.yml \
+            -o /tmp/plaid-openapi.yml
+
+      - name: Compare against pinned hash
+        id: compare
+        run: |
+          NEW=$(sha256sum /tmp/plaid-openapi.yml | cut -d' ' -f1)
+          OLD=$(tr -d '[:space:]' < .github/openapi-spec.sha256)
+          echo "pinned:  $OLD"
+          echo "current: $NEW"
+          if [ "$NEW" = "$OLD" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "new_hash=$NEW" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update tracking issue
+        if: steps.compare.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_HASH: ${{ steps.compare.outputs.new_hash }}
+        run: |
+          TITLE="Plaid OpenAPI spec changed — review src/models/ for drift"
+          BODY="The pinned hash in \`.github/openapi-spec.sha256\` no longer matches \
+          [plaid/plaid-openapi](https://github.com/plaid/plaid-openapi/commits/master/2020-09-14.yml) \
+          (current hash: \`$NEW_HASH\`).
+
+          Per ADR-0001/ADR-0005, review the upstream spec changes and update the \
+          hand-curated models in \`src/models/\` (or regenerate once the generator \
+          pipeline lands). When done, update the pinned hash:
+
+          \`\`\`bash
+          curl -sfL https://raw.githubusercontent.com/plaid/plaid-openapi/master/2020-09-14.yml \
+            | sha256sum | cut -d' ' -f1 > .github/openapi-spec.sha256
+          \`\`\`
+
+          _Opened by the OpenAPI Spec Watch workflow._"
+
+          EXISTING=$(gh issue list --state open --search "in:title \"$TITLE\"" \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+            echo "Commented on existing issue #$EXISTING"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" --label needs-triage \
+              || gh issue create --title "$TITLE" --body "$BODY"
+            echo "Opened new tracking issue"
+          fi

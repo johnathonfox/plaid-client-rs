@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SPEC_URL="https://raw.githubusercontent.com/plaid/plaid-openapi/master/openapi.yaml"
+SPEC_URL="https://raw.githubusercontent.com/plaid/plaid-openapi/master/2020-09-14.yml"
 OUT_DIR="src/models/generated"
 
 echo "Downloading Plaid OpenAPI spec..."
-curl -sL "$SPEC_URL" -o /tmp/plaid-openapi.yaml
+curl -sL "$SPEC_URL" -o /tmp/plaid-openapi.yml
 
 echo "Generating Rust models..."
 # TODO: Add progenitor or openapi-generator command here
