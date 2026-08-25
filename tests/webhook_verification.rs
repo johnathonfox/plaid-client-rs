@@ -140,3 +140,17 @@ async fn verify_webhook_rejects_garbage_jwt() {
 
     assert!(matches!(error, PlaidError::WebhookVerification(_)));
 }
+
+#[tokio::test]
+async fn verify_webhook_rejects_future_dated_token() {
+    let mock = PlaidMockServer::new().await;
+    mock.mock_webhook_verification_key_get(test_jwk()).await;
+
+    let body = webhook_body();
+    let jwt = sign_webhook_jwt(&body, now() + 3600);
+
+    let client = PlaidClient::new(test_config(&mock.uri())).unwrap();
+    let error = client.verify_webhook(&jwt, &body).await.unwrap_err();
+
+    assert!(matches!(error, PlaidError::WebhookVerification(_)));
+}

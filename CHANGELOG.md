@@ -29,3 +29,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `middleware::Request` is no longer `Clone` and its `Debug` redacts the body (it carries injected credentials)
 - `reqwest` now builds with `default-features = false` (rustls only, per ADR-0002); `tokio` `time`/`sync` features are declared explicitly
 - The Link flow example no longer prints the access token
+- Webhook body-hash comparison is now constant-time, and tokens dated in the future (beyond a 30s clock-skew allowance) are rejected per Plaid's freshness rule
