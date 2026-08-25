@@ -1,7 +1,7 @@
 # ADR-0004: Webhook Signature Verification via ES256 JWT
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 Plaid signs every webhook delivery with a JWS (JWT, ES256) sent in the

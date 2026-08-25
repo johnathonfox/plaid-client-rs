@@ -36,21 +36,28 @@ struct PlaidErrorBody {
 /// actual HTTP POST and maps the response.
 pub(crate) async fn send(inner: &PlaidClientInner, request: &Request) -> Result<Value, PlaidError> {
     let url = format!("{}{}", inner.base_url().trim_end_matches('/'), request.path);
+    // Transport errors only; response decoding is mapped separately so
+    // retry logic can tell "never reached the server" apart from
+    // "server replied with a malformed body".
     let response = inner.http.post(&url).json(&request.body).send().await?;
 
     if response.status().is_success() {
-        Ok(response.json::<Value>().await?)
+        response.json::<Value>().await.map_err(PlaidError::Decode)
     } else {
         let status = response.status();
-        let text = response.text().await?;
+        let text = response.text().await.map_err(PlaidError::Decode)?;
         match serde_json::from_str::<PlaidErrorBody>(&text) {
             Ok(body) => Err(PlaidError::Api {
+                status: status.as_u16(),
                 error_type: body.error_type,
                 error_code: body.error_code,
                 error_message: body.error_message,
                 request_id: body.request_id,
             }),
-            Err(_) => Err(PlaidError::Unknown(format!("HTTP {status}: {text}"))),
+            Err(_) => Err(PlaidError::UnexpectedStatus {
+                status: status.as_u16(),
+                body: text,
+            }),
         }
     }
 }

@@ -21,12 +21,24 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 /// A single API call passed through the middleware chain.
-#[derive(Debug, Clone)]
+///
+/// The body contains injected credentials (`client_id`/`secret`) and may
+/// contain access tokens, so `Debug` redacts it and the type is not
+/// `Clone`. Middleware must never log or persist the body.
 pub struct Request {
     /// The API path being called (e.g. `/auth/get`).
     pub path: String,
     /// The JSON request body, including injected credentials.
     pub body: Value,
+}
+
+impl Debug for Request {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Request")
+            .field("path", &self.path)
+            .field("body", &"<redacted>")
+            .finish()
+    }
 }
 
 /// The remainder of the middleware chain.

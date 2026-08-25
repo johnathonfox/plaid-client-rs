@@ -1,6 +1,6 @@
 use plaid_client_rs::models::link::{LinkTokenCreateRequest, LinkTokenUser};
 use plaid_client_rs::{Config, Environment, PlaidClient};
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 
 /// The full sandbox Link flow: create a Link token, simulate a user
 /// completing Link with a sandbox public token, and exchange it for an
@@ -39,10 +39,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exchange = client
         .item_public_token_exchange(&public_token.public_token)
         .await?;
+    // Never print tokens — treat the access token like a password.
     println!(
-        "Access token obtained for item {}: {}",
-        exchange.item_id,
-        exchange.access_token.expose_secret()
+        "Access token obtained for item {} (token redacted)",
+        exchange.item_id
     );
 
     Ok(())

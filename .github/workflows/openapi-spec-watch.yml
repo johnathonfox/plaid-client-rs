@@ -11,6 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  contents: read
   issues: write
 
 jobs:
@@ -62,8 +63,9 @@ jobs:
 
           _Opened by the OpenAPI Spec Watch workflow._"
 
-          EXISTING=$(gh issue list --state open --search "in:title \"$TITLE\"" \
-            --json number --jq '.[0].number // empty')
+          EXISTING=$(gh issue list --state open --search "in:title $TITLE" \
+            --json number,title --jq --arg t "$TITLE" \
+            '.[] | select(.title == $t) | .number' | head -n1)
 
           if [ -n "$EXISTING" ]; then
             gh issue comment "$EXISTING" --body "$BODY"

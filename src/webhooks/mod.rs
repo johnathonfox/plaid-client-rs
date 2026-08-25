@@ -86,5 +86,6 @@ pub(crate) fn verify(key: &Jwk, jwt: &str, raw_body: &[u8]) -> Result<WebhookEnv
         ));
     }
 
-    Ok(serde_json::from_slice(raw_body)?)
+    serde_json::from_slice(raw_body)
+        .map_err(|e| verification_error(format!("verified payload is not valid webhook JSON: {e}")))
 }

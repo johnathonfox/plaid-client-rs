@@ -1,7 +1,7 @@
 # ADR-0003: Hand-Rolled Middleware Chain Around the Request Pipeline
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 The README roadmap calls for middleware support (logging, retry, rate-limiting).

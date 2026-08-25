@@ -7,10 +7,17 @@ use std::time::Duration;
 
 /// Retries failed requests with exponential backoff.
 ///
-/// Retries transport failures ([`PlaidError::Http`]) and Plaid API errors
-/// whose `error_type` is `API_ERROR` or `RATE_LIMIT_EXCEEDED` (the types
-/// Plaid returns with 5xx and 429 statuses). All other API errors are
-/// returned immediately.
+/// Retries are attempted for:
+///
+/// - connection errors (the request never reached the server), and
+/// - responses with a 429 or 5xx status, whether the body is a Plaid
+///   error ([`PlaidError::Api`]) or not ([`PlaidError::UnexpectedStatus`],
+///   e.g. a load-balancer error page).
+///
+/// Timeouts and response-decode failures are **not** retried: the request
+/// may already have been processed server-side, and Plaid writes are not
+/// universally idempotent. Where available, prefer endpoints that accept
+/// an idempotency key (e.g. `transfer_create`).
 #[derive(Debug, Clone)]
 pub struct RetryPolicy {
     /// Maximum number of attempts, including the initial request.
@@ -30,10 +37,14 @@ impl Default for RetryPolicy {
 
 impl RetryPolicy {
     fn is_retryable(error: &PlaidError) -> bool {
+        fn retryable_status(status: u16) -> bool {
+            status == 429 || status >= 500
+        }
+
         match error {
-            PlaidError::Http(_) => true,
-            PlaidError::Api { error_type, .. } => {
-                matches!(error_type.as_str(), "API_ERROR" | "RATE_LIMIT_EXCEEDED")
+            PlaidError::Http(e) => e.is_connect(),
+            PlaidError::Api { status, .. } | PlaidError::UnexpectedStatus { status, .. } => {
+                retryable_status(*status)
             }
             _ => false,
         }

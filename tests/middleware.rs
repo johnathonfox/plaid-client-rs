@@ -129,3 +129,61 @@ async fn middleware_chain_composes() {
     assert_eq!(response.public_token, "public-sandbox-xxx");
     assert_eq!(mock.received_request_count().await, 2);
 }
+
+/// Mount a load-balancer-style 502 with a non-Plaid body, `failures` times.
+async fn mock_bad_gateway(mock: &PlaidMockServer, failures: u64) {
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, ResponseTemplate};
+
+    Mock::given(method("POST"))
+        .and(path(RETRY_PATH))
+        .respond_with(ResponseTemplate::new(502).set_body_string("<html>Bad Gateway</html>"))
+        .with_priority(1)
+        .up_to_n_times(failures)
+        .mount(&mock.server)
+        .await;
+}
+
+#[tokio::test]
+async fn retry_retries_5xx_with_non_plaid_body() {
+    let mock = PlaidMockServer::new().await;
+    mock.mock_public_token_create("test-client-id", "test-secret")
+        .await;
+    mock_bad_gateway(&mock, 2).await;
+
+    let mut config = test_config(&mock.uri());
+    config.middleware = vec![Arc::new(fast_retry(3))];
+    let client = PlaidClient::new(config).unwrap();
+
+    let response = client
+        .sandbox_public_token_create("ins_109508", &["auth".to_string()])
+        .await
+        .unwrap();
+
+    assert_eq!(response.public_token, "public-sandbox-xxx");
+    assert_eq!(mock.received_request_count().await, 3);
+}
+
+#[tokio::test]
+async fn persistent_non_plaid_5xx_maps_to_unexpected_status() {
+    let mock = PlaidMockServer::new().await;
+    mock_bad_gateway(&mock, 10).await;
+
+    let mut config = test_config(&mock.uri());
+    config.middleware = vec![Arc::new(fast_retry(3))];
+    let client = PlaidClient::new(config).unwrap();
+
+    let error = client
+        .sandbox_public_token_create("ins_109508", &["auth".to_string()])
+        .await
+        .unwrap_err();
+
+    match error {
+        PlaidError::UnexpectedStatus { status, body } => {
+            assert_eq!(status, 502);
+            assert!(body.contains("Bad Gateway"));
+        }
+        other => panic!("expected PlaidError::UnexpectedStatus, got {other:?}"),
+    }
+    assert_eq!(mock.received_request_count().await, 3);
+}

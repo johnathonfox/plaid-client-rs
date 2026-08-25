@@ -46,11 +46,13 @@ async fn sandbox_public_token_create_maps_plaid_error() {
 
     match error {
         PlaidError::Api {
+            status,
             error_type,
             error_code,
             error_message,
             request_id,
         } => {
+            assert_eq!(status, 400);
             assert_eq!(error_type, "INVALID_INPUT");
             assert_eq!(error_code, "INVALID_API_KEYS");
             assert_eq!(error_message, "invalid client_id or secret");

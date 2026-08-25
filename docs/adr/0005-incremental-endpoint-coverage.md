@@ -1,7 +1,7 @@
 # ADR-0005: Incremental Hand-Curated Endpoint Coverage
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 ADR-0001 chose OpenAPI generation as the source of truth for models, but
