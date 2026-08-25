@@ -7,3 +7,4 @@
 | 0003 | Hand-rolled middleware chain around the request pipeline | Accepted | 2026-08-24 |
 | 0004 | Webhook signature verification via ES256 JWT | Accepted | 2026-08-24 |
 | 0005 | Incremental hand-curated endpoint coverage | Accepted | 2026-08-24 |
+| 0006 | Decimal money via rust_decimal | Accepted | 2026-08-24 |

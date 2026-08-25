@@ -30,3 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `reqwest` now builds with `default-features = false` (rustls only, per ADR-0002); `tokio` `time`/`sync` features are declared explicitly
 - The Link flow example no longer prints the access token
 - Webhook body-hash comparison is now constant-time, and tokens dated in the future (beyond a 30s clock-skew allowance) are rejected per Plaid's freshness rule
+- Transfer endpoints take a shared `TransferParams` struct (no more 7–10 positional arguments); `transfer_type`/`network`/`ach_class` are now typed enums (`TransferType`, `TransferNetwork`, `TransferAchClass`) with an `Unknown` fallback for forward compatibility
+- `AccountsGetResponse.item` reuses `models::item::Item` (`AccountsGetItem` removed); `IdentityAccount` flattens the shared `Account` model instead of duplicating its fields
+- Monetary fields are now `rust_decimal::Decimal` (re-exported at the crate root) instead of `f64` — balances, amounts, prices, values, quantities, payment amounts — serialized as JSON numbers per ADR-0006; percentages stay `f64`

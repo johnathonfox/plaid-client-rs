@@ -2,6 +2,7 @@
 mod server;
 
 use plaid_client_rs::{Config, Environment, PlaidClient};
+use rust_decimal::dec;
 use secrecy::SecretString;
 use serde_json::json;
 use server::PlaidMockServer;
@@ -77,16 +78,16 @@ async fn investments_holdings_get_succeeds() {
     assert_eq!(response.holdings.len(), 1);
     let holding = &response.holdings[0];
     assert_eq!(holding.security_id, "sec-1");
-    assert_eq!(holding.quantity, 10.5);
-    assert_eq!(holding.cost_basis, Some(2100.0));
-    assert_eq!(holding.institution_price, 220.5);
+    assert_eq!(holding.quantity, dec!(10.5));
+    assert_eq!(holding.cost_basis, Some(dec!(2100.0)));
+    assert_eq!(holding.institution_price, dec!(220.5));
     assert_eq!(holding.iso_currency_code.as_deref(), Some("USD"));
 
     assert_eq!(response.securities.len(), 1);
     let security = &response.securities[0];
     assert_eq!(security.ticker_symbol.as_deref(), Some("VTI"));
     assert_eq!(security.security_type.as_deref(), Some("etf"));
-    assert_eq!(security.close_price, Some(220.5));
+    assert_eq!(security.close_price, Some(dec!(220.5)));
 
     assert_eq!(response.request_id, "req-holdings");
 }
@@ -138,7 +139,7 @@ async fn investments_transactions_get_succeeds() {
     let buy = &response.investment_transactions[0];
     assert_eq!(buy.investment_transaction_id, "itxn-1");
     assert_eq!(buy.security_id.as_deref(), Some("sec-1"));
-    assert_eq!(buy.amount, 2205.0);
+    assert_eq!(buy.amount, dec!(2205.0));
     assert_eq!(buy.transaction_type, "buy");
     assert_eq!(buy.subtype, None);
 

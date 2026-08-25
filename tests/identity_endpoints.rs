@@ -2,6 +2,7 @@
 mod server;
 
 use plaid_client_rs::{Config, Environment, PlaidClient};
+use rust_decimal::dec;
 use secrecy::SecretString;
 use serde_json::json;
 use server::PlaidMockServer;
@@ -28,6 +29,11 @@ fn identity_get_body() -> serde_json::Value {
             "official_name": "Plaid Gold Standard 0% Interest Checking",
             "type": "depository",
             "subtype": "checking",
+            "balances": {
+                "available": 100.0,
+                "current": 110.0,
+                "iso_currency_code": "USD"
+            },
             "owners": [{
                 "names": ["Alberta Charleson", "Bobby Charleson"],
                 "addresses": [{
@@ -68,14 +74,15 @@ async fn identity_get_succeeds() {
     assert_eq!(response.accounts.len(), 1);
 
     let account = &response.accounts[0];
-    assert_eq!(account.account_id, "acc-1");
-    assert_eq!(account.name, "Plaid Checking");
+    assert_eq!(account.account.account_id, "acc-1");
+    assert_eq!(account.account.name, "Plaid Checking");
     assert_eq!(
-        account.official_name.as_deref(),
+        account.account.official_name.as_deref(),
         Some("Plaid Gold Standard 0% Interest Checking")
     );
-    assert_eq!(account.account_type, "depository");
-    assert_eq!(account.subtype.as_deref(), Some("checking"));
+    assert_eq!(account.account.account_type, "depository");
+    assert_eq!(account.account.subtype.as_deref(), Some("checking"));
+    assert_eq!(account.account.balances.current, Some(dec!(110.0)));
     assert_eq!(account.owners.len(), 1);
 
     let owner = &account.owners[0];
@@ -112,6 +119,11 @@ async fn identity_get_handles_missing_optional_fields() {
                 "official_name": null,
                 "type": "depository",
                 "subtype": null,
+                "balances": {
+                    "available": null,
+                    "current": 50.0,
+                    "iso_currency_code": "USD"
+                },
                 "owners": [{
                     "names": ["Alberta Charleson"],
                     "addresses": [{
@@ -137,8 +149,8 @@ async fn identity_get_handles_missing_optional_fields() {
     let response = client.identity_get(&test_access_token()).await.unwrap();
 
     let account = &response.accounts[0];
-    assert!(account.official_name.is_none());
-    assert!(account.subtype.is_none());
+    assert!(account.account.official_name.is_none());
+    assert!(account.account.subtype.is_none());
 
     let owner = &account.owners[0];
     assert_eq!(owner.names.len(), 1);

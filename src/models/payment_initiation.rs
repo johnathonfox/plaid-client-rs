@@ -4,6 +4,7 @@
 //! `secret` (injected by [`crate::PlaidClient`]), not an item's
 //! `access_token`.
 
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// Bacs account numbers for a UK recipient.
@@ -19,7 +20,8 @@ pub struct RecipientBacs {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaymentAmount {
     /// The amount of the payment, with at most two digits of precision.
-    pub value: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub value: Decimal,
     /// The ISO-4217 currency code of the payment (e.g. `GBP`, `EUR`).
     pub currency: String,
 }

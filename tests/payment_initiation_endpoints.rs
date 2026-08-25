@@ -3,6 +3,7 @@ mod server;
 
 use plaid_client_rs::models::payment_initiation::RecipientBacs;
 use plaid_client_rs::{Config, Environment, PlaidClient, PlaidError};
+use rust_decimal::dec;
 use secrecy::SecretString;
 use serde_json::json;
 use server::PlaidMockServer;
@@ -116,7 +117,12 @@ async fn payment_initiation_payment_create_succeeds() {
 
     let client = PlaidClient::new(test_config(&mock.uri())).unwrap();
     let response = client
-        .payment_initiation_payment_create("recipient-id-sandbox-xxx", "TestPayment", 100.0, "GBP")
+        .payment_initiation_payment_create(
+            "recipient-id-sandbox-xxx",
+            "TestPayment",
+            dec!(100.0),
+            "GBP",
+        )
         .await
         .unwrap();
 
@@ -160,7 +166,7 @@ async fn payment_initiation_payment_get_succeeds() {
     assert_eq!(response.payment_id, "payment-id-sandbox-xxx");
     assert_eq!(response.recipient_id, "recipient-id-sandbox-xxx");
     assert_eq!(response.reference, "Account Funding 99744");
-    assert_eq!(response.amount.value, 100.0);
+    assert_eq!(response.amount.value, dec!(100.0));
     assert_eq!(response.amount.currency, "GBP");
     assert_eq!(response.status, "PAYMENT_STATUS_INITIATED");
     assert_eq!(response.request_id, "req-payment-get");

@@ -1,11 +1,10 @@
 //! Transfer product endpoints.
 
 use crate::models::transfer::{
-    TransferAuthorizationCreateRequest, TransferAuthorizationCreateResponse, TransferCreateRequest,
-    TransferCreateResponse, TransferGetRequest, TransferGetResponse, TransferUser,
+    TransferAuthorizationCreateResponse, TransferCreateRequest, TransferCreateResponse,
+    TransferGetRequest, TransferGetResponse, TransferParams,
 };
 use crate::{PlaidClient, PlaidError};
-use secrecy::SecretString;
 
 impl PlaidClient {
     /// Call `/transfer/authorization/create` to authorize a transfer
@@ -16,61 +15,35 @@ impl PlaidClient {
     /// Returns [`PlaidError::Api`] if Plaid rejects the request, or
     /// [`PlaidError::Http`] / [`PlaidError::Serialization`] on transport
     /// or decoding failures.
-    #[allow(clippy::too_many_arguments)]
     pub async fn transfer_authorization_create(
         &self,
-        access_token: &SecretString,
-        account_id: &str,
-        transfer_type: &str,
-        network: &str,
-        amount: &str,
-        ach_class: &str,
-        legal_name: &str,
+        params: TransferParams<'_>,
     ) -> Result<TransferAuthorizationCreateResponse, PlaidError> {
-        let request = TransferAuthorizationCreateRequest {
-            access_token,
-            account_id,
-            transfer_type,
-            network,
-            amount,
-            ach_class,
-            user: TransferUser { legal_name },
-        };
-        self.post("/transfer/authorization/create", &request).await
+        self.post("/transfer/authorization/create", &params).await
     }
 
     /// Call `/transfer/create` to originate a transfer using a prior
     /// authorization.
+    ///
+    /// `idempotency_key` makes creation safe to retry: reused keys return
+    /// the existing transfer.
     ///
     /// # Errors
     ///
     /// Returns [`PlaidError::Api`] if Plaid rejects the request, or
     /// [`PlaidError::Http`] / [`PlaidError::Serialization`] on transport
     /// or decoding failures.
-    #[allow(clippy::too_many_arguments)]
     pub async fn transfer_create(
         &self,
-        access_token: &SecretString,
-        account_id: &str,
         authorization_id: &str,
-        transfer_type: &str,
-        network: &str,
-        amount: &str,
         description: &str,
-        ach_class: &str,
-        legal_name: &str,
         idempotency_key: &str,
+        params: TransferParams<'_>,
     ) -> Result<TransferCreateResponse, PlaidError> {
         let request = TransferCreateRequest {
-            access_token,
-            account_id,
+            params,
             authorization_id,
-            transfer_type,
-            network,
-            amount,
             description,
-            ach_class,
-            user: TransferUser { legal_name },
             idempotency_key,
         };
         self.post("/transfer/create", &request).await

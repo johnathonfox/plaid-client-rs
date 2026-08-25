@@ -30,7 +30,10 @@ async fn accounts_get_succeeds() {
             "accounts": [PlaidMockServer::sample_account()],
             "item": {
                 "item_id": "item-1",
-                "institution_id": "ins_109508"
+                "institution_id": "ins_109508",
+                "webhook": null,
+                "available_products": ["auth", "balance"],
+                "billed_products": ["auth"]
             },
             "request_id": "req-accounts"
         }),
@@ -45,6 +48,7 @@ async fn accounts_get_succeeds() {
     assert_eq!(response.accounts[0].name, "Plaid Checking");
     assert_eq!(response.item.item_id, "item-1");
     assert_eq!(response.item.institution_id.as_deref(), Some("ins_109508"));
+    assert_eq!(response.item.available_products, vec!["auth", "balance"]);
     assert_eq!(response.request_id, "req-accounts");
 }
 
@@ -57,7 +61,10 @@ async fn accounts_get_handles_missing_institution_id() {
             "accounts": [PlaidMockServer::sample_account()],
             "item": {
                 "item_id": "item-1",
-                "institution_id": null
+                "institution_id": null,
+                "webhook": null,
+                "available_products": [],
+                "billed_products": []
             },
             "request_id": "req-accounts"
         }),

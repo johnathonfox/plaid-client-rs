@@ -1,5 +1,6 @@
 //! Models for the Identity product endpoints.
 
+use crate::models::account::Account;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 
@@ -77,21 +78,14 @@ pub struct IdentityOwner {
 }
 
 /// An account with identity (account holder) information.
-// Field names mirror Plaid's JSON schema (`account_id`, `type`, …).
-#[allow(clippy::struct_field_names)]
+///
+/// Reuses the shared [`Account`] model via `#[serde(flatten)]`;
+/// `/identity/get` returns full account objects plus owners.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdentityAccount {
-    /// The Plaid account ID.
-    pub account_id: String,
-    /// The account name.
-    pub name: String,
-    /// The official account name, if provided by the institution.
-    pub official_name: Option<String>,
-    /// The account type (e.g. `depository`, `credit`).
-    #[serde(rename = "type")]
-    pub account_type: String,
-    /// The account subtype (e.g. `checking`, `savings`).
-    pub subtype: Option<String>,
+    /// The account fields shared with other products.
+    #[serde(flatten)]
+    pub account: Account,
     /// The owners (account holders) of the account.
     #[serde(default)]
     pub owners: Vec<IdentityOwner>,

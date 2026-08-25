@@ -2,6 +2,7 @@
 mod server;
 
 use plaid_client_rs::{Config, Environment, PlaidClient};
+use rust_decimal::dec;
 use secrecy::SecretString;
 use serde_json::json;
 use server::PlaidMockServer;
@@ -75,11 +76,11 @@ async fn liabilities_get_succeeds() {
 
     let credit = &response.liabilities.credit[0];
     assert_eq!(credit.account_id, "acc-1");
-    assert_eq!(credit.minimum_payment_amount, Some(35.0));
+    assert_eq!(credit.minimum_payment_amount, Some(dec!(35.0)));
     assert_eq!(credit.is_overdue, Some(false));
     assert_eq!(credit.aprs[0].apr_percentage, 24.99);
     assert_eq!(credit.aprs[0].apr_type, "purchase_apr");
-    assert_eq!(credit.aprs[0].balance_subject_to_apr, Some(1250.75));
+    assert_eq!(credit.aprs[0].balance_subject_to_apr, Some(dec!(1250.75)));
 
     let student = &response.liabilities.student[0];
     assert_eq!(student.account_id, "acc-2");
@@ -90,7 +91,7 @@ async fn liabilities_get_succeeds() {
     assert_eq!(mortgage.account_id, "acc-3");
     assert_eq!(mortgage.interest_rate.percentage, 3.875);
     assert_eq!(mortgage.interest_rate.rate_type, "fixed");
-    assert_eq!(mortgage.ytd_interest_paid, Some(8100.0));
+    assert_eq!(mortgage.ytd_interest_paid, Some(dec!(8100.0)));
 
     assert_eq!(response.request_id, "req-liabilities");
 }

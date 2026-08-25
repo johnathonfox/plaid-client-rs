@@ -1,5 +1,6 @@
 //! Models for bank accounts, shared across products (Auth, Balance, …).
 
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// A bank account associated with an item.
@@ -26,9 +27,11 @@ pub struct Account {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Balances {
     /// The amount of funds available, if provided by the institution.
-    pub available: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub available: Option<Decimal>,
     /// The total amount of funds in the account.
-    pub current: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub current: Option<Decimal>,
     /// The ISO-4217 currency code (e.g. `USD`).
     pub iso_currency_code: Option<String>,
 }

@@ -1,6 +1,7 @@
 //! Models for the Liabilities product endpoints.
 
 use crate::models::account::Account;
+use rust_decimal::Decimal;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 
@@ -20,7 +21,8 @@ pub struct CreditApr {
     /// The type of balance to which the APR applies (e.g. `purchase_apr`).
     pub apr_type: String,
     /// The amount of money subject to the APR, if available.
-    pub balance_subject_to_apr: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub balance_subject_to_apr: Option<Decimal>,
 }
 
 /// A credit card liability for an account.
@@ -29,15 +31,18 @@ pub struct CreditLiability {
     /// The Plaid account ID.
     pub account_id: String,
     /// The minimum payment due for the next billing cycle, if available.
-    pub minimum_payment_amount: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub minimum_payment_amount: Option<Decimal>,
     /// The amount of the last payment, if available.
-    pub last_payment_amount: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub last_payment_amount: Option<Decimal>,
     /// Whether the account is overdue, if available.
     pub is_overdue: Option<bool>,
     /// The due date for the next payment (ISO-8601 date), if available.
     pub next_payment_due_date: Option<String>,
     /// The outstanding balance on the last statement, if available.
-    pub last_statement_balance: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub last_statement_balance: Option<Decimal>,
     /// The various interest rates applying to the account.
     #[serde(default)]
     pub aprs: Vec<CreditApr>,
@@ -51,11 +56,14 @@ pub struct StudentLiability {
     /// The interest rate percentage of the loan.
     pub interest_rate_percentage: f64,
     /// The minimum payment due for the next billing cycle, if available.
-    pub minimum_payment_amount: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub minimum_payment_amount: Option<Decimal>,
     /// The original principal balance of the loan, if available.
-    pub origination_principal_amount: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub origination_principal_amount: Option<Decimal>,
     /// The total amount of interest outstanding, if available.
-    pub outstanding_interest_amount: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub outstanding_interest_amount: Option<Decimal>,
     /// The due date for the next payment (ISO-8601 date), if available.
     pub next_payment_due_date: Option<String>,
     /// The name of the loan, if available.
@@ -83,11 +91,14 @@ pub struct MortgageLiability {
     /// The type of loan (e.g. `conventional`), if available.
     pub loan_type_description: Option<String>,
     /// The original principal balance of the loan, if available.
-    pub origination_principal_amount: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub origination_principal_amount: Option<Decimal>,
     /// The amount of the next monthly payment, if available.
-    pub next_monthly_payment: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub next_monthly_payment: Option<Decimal>,
     /// The year-to-date interest paid, if available.
-    pub ytd_interest_paid: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub ytd_interest_paid: Option<Decimal>,
 }
 
 /// Liabilities data for an item, grouped by liability type.

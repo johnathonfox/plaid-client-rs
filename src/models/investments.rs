@@ -1,6 +1,7 @@
 //! Models for the Investments product endpoints.
 
 use crate::models::account::Account;
+use rust_decimal::Decimal;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 
@@ -34,13 +35,17 @@ pub struct Holding {
     /// The Plaid security ID of the held security.
     pub security_id: String,
     /// The quantity of the security held.
-    pub quantity: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub quantity: Decimal,
     /// The total cost basis of the holding, if available.
-    pub cost_basis: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub cost_basis: Option<Decimal>,
     /// The value of the holding, as reported by the institution.
-    pub institution_value: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub institution_value: Decimal,
     /// The price of the security, as reported by the institution.
-    pub institution_price: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub institution_price: Decimal,
     /// The ISO-4217 currency code of the institution price and value.
     pub iso_currency_code: Option<String>,
 }
@@ -60,7 +65,8 @@ pub struct Security {
     #[serde(rename = "type")]
     pub security_type: Option<String>,
     /// The most recent closing price of the security, if available.
-    pub close_price: Option<f64>,
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub close_price: Option<Decimal>,
     /// The ISO-4217 currency code of the close price.
     pub iso_currency_code: Option<String>,
 }
@@ -78,11 +84,14 @@ pub struct InvestmentTransaction {
     pub security_id: Option<String>,
     /// The total value of the transaction (positive for buys, negative
     /// for sells).
-    pub amount: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub amount: Decimal,
     /// The price of the security at the time of the transaction.
-    pub price: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub price: Decimal,
     /// The number of units transacted.
-    pub quantity: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub quantity: Decimal,
     /// The date of the transaction (`YYYY-MM-DD`).
     pub date: String,
     /// The transaction description.

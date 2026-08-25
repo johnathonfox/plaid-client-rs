@@ -32,6 +32,9 @@ pub use client::PlaidClient;
 pub use config::{Config, Environment};
 pub use error::PlaidError;
 
+/// Decimal money type used by all monetary model fields (ADR-0006).
+pub use rust_decimal::Decimal;
+
 // Re-export commonly used models at crate root
 pub use models::auth;
 pub use models::link;

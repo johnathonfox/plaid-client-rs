@@ -1,6 +1,9 @@
 #[path = "mock/server.rs"]
 mod server;
 
+use plaid_client_rs::models::transfer::{
+    TransferAchClass, TransferNetwork, TransferParams, TransferType, TransferUser,
+};
 use plaid_client_rs::{Config, Environment, PlaidClient};
 use secrecy::SecretString;
 use serde_json::json;
@@ -18,6 +21,20 @@ fn test_config(base_url: &str) -> Config {
 
 fn test_access_token() -> SecretString {
     SecretString::from("access-sandbox-xxx")
+}
+
+fn test_params(access_token: &SecretString) -> TransferParams<'_> {
+    TransferParams {
+        access_token,
+        account_id: "acc-1",
+        transfer_type: TransferType::Debit,
+        network: TransferNetwork::Ach,
+        amount: "12.34",
+        ach_class: TransferAchClass::Ppd,
+        user: TransferUser {
+            legal_name: "Jane Doe",
+        },
+    }
 }
 
 fn sample_transfer() -> serde_json::Value {
@@ -53,15 +70,7 @@ async fn transfer_authorization_create_succeeds() {
 
     let client = PlaidClient::new(test_config(&mock.uri())).unwrap();
     let response = client
-        .transfer_authorization_create(
-            &test_access_token(),
-            "acc-1",
-            "debit",
-            "ach",
-            "12.34",
-            "ppd",
-            "Jane Doe",
-        )
+        .transfer_authorization_create(test_params(&test_access_token()))
         .await
         .unwrap();
 
@@ -93,16 +102,10 @@ async fn transfer_create_succeeds() {
     let client = PlaidClient::new(test_config(&mock.uri())).unwrap();
     let response = client
         .transfer_create(
-            &test_access_token(),
-            "acc-1",
             "authz-1",
-            "debit",
-            "ach",
-            "12.34",
             "Payment",
-            "ppd",
-            "Jane Doe",
             "idem-key-1",
+            test_params(&test_access_token()),
         )
         .await
         .unwrap();
@@ -111,12 +114,12 @@ async fn transfer_create_succeeds() {
     assert_eq!(transfer.id, "transfer-1");
     assert_eq!(transfer.account_id, "acc-1");
     assert_eq!(transfer.authorization_id.as_deref(), Some("authz-1"));
-    assert_eq!(transfer.transfer_type, "debit");
-    assert_eq!(transfer.network, "ach");
+    assert_eq!(transfer.transfer_type, TransferType::Debit);
+    assert_eq!(transfer.network, TransferNetwork::Ach);
     assert_eq!(transfer.amount, "12.34");
     assert_eq!(transfer.description, "Payment");
     assert_eq!(transfer.status, "pending");
-    assert_eq!(transfer.ach_class, "ppd");
+    assert_eq!(transfer.ach_class, TransferAchClass::Ppd);
     assert_eq!(transfer.created, "2026-08-24T22:00:00Z");
     assert_eq!(response.request_id, "req-create");
 

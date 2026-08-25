@@ -23,6 +23,7 @@ async-trait = "0.1.92"
 jsonwebtoken = "9"
 sha2 = "0.10.9"
 hex = "0.4.3"
+rust_decimal = { version = "1.42.1", features = ["macros", "serde-with-float"] }
 
 [dev-dependencies]
 wiremock = "0.6"

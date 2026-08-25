@@ -3,6 +3,56 @@
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 
+/// The direction of a transfer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TransferType {
+    /// Money moves into the account.
+    Credit,
+    /// Money moves out of the account.
+    Debit,
+    /// A value this version of the client doesn't know.
+    #[serde(other)]
+    Unknown,
+}
+
+/// The network a transfer runs over.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TransferNetwork {
+    /// Standard ACH.
+    #[serde(rename = "ach")]
+    Ach,
+    /// Same-day ACH.
+    #[serde(rename = "same-day-ach")]
+    SameDayAch,
+    /// Real-time payments.
+    #[serde(rename = "rtp")]
+    Rtp,
+    /// Domestic wire.
+    #[serde(rename = "wire")]
+    Wire,
+    /// A value this version of the client doesn't know.
+    #[serde(other)]
+    Unknown,
+}
+
+/// The ACH SEC code (class) of a transfer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TransferAchClass {
+    /// Prearranged payment and deposit (consumer).
+    Ppd,
+    /// Corporate credit or debit (business).
+    Ccd,
+    /// Telephone-initiated entry.
+    Tel,
+    /// Internet-initiated entry.
+    Web,
+    /// A value this version of the client doesn't know.
+    #[serde(other)]
+    Unknown,
+}
+
 /// User details supplied with a transfer request.
 #[derive(Debug, Serialize)]
 pub struct TransferUser<'a> {
@@ -10,23 +60,26 @@ pub struct TransferUser<'a> {
     pub legal_name: &'a str,
 }
 
-/// Request for `/transfer/authorization/create`.
+/// The shared parameters of transfer authorization and creation.
+///
+/// Serializes to the common body shape of `/transfer/authorization/create`
+/// and `/transfer/create`.
 #[derive(Debug, Serialize)]
-pub struct TransferAuthorizationCreateRequest<'a> {
+pub struct TransferParams<'a> {
     /// The access token for the item.
     #[serde(serialize_with = "crate::models::common::serialize_secret_string")]
     pub access_token: &'a SecretString,
     /// The Plaid account ID to transfer funds to or from.
     pub account_id: &'a str,
-    /// The type of transfer (`"debit"` or `"credit"`).
+    /// The direction of the transfer.
     #[serde(rename = "type")]
-    pub transfer_type: &'a str,
-    /// The transfer network (`"ach"` or `"same-day-ach"`).
-    pub network: &'a str,
+    pub transfer_type: TransferType,
+    /// The transfer network.
+    pub network: TransferNetwork,
     /// The transfer amount as a decimal string (e.g. `"12.34"`).
     pub amount: &'a str,
-    /// The ACH class (`"ppd"`, `"ccd"`, `"tel"`, or `"web"`).
-    pub ach_class: &'a str,
+    /// The ACH class.
+    pub ach_class: TransferAchClass,
     /// The user initiating the transfer.
     pub user: TransferUser<'a>,
 }
@@ -34,26 +87,13 @@ pub struct TransferAuthorizationCreateRequest<'a> {
 /// Request for `/transfer/create`.
 #[derive(Debug, Serialize)]
 pub struct TransferCreateRequest<'a> {
-    /// The access token for the item.
-    #[serde(serialize_with = "crate::models::common::serialize_secret_string")]
-    pub access_token: &'a SecretString,
-    /// The Plaid account ID to transfer funds to or from.
-    pub account_id: &'a str,
+    /// The shared transfer parameters.
+    #[serde(flatten)]
+    pub params: TransferParams<'a>,
     /// The authorization ID returned by `/transfer/authorization/create`.
     pub authorization_id: &'a str,
-    /// The type of transfer (`"debit"` or `"credit"`).
-    #[serde(rename = "type")]
-    pub transfer_type: &'a str,
-    /// The transfer network (`"ach"` or `"same-day-ach"`).
-    pub network: &'a str,
-    /// The transfer amount as a decimal string (e.g. `"12.34"`).
-    pub amount: &'a str,
     /// The transfer description, visible on the bank statement.
     pub description: &'a str,
-    /// The ACH class (`"ppd"`, `"ccd"`, `"tel"`, or `"web"`).
-    pub ach_class: &'a str,
-    /// The user initiating the transfer.
-    pub user: TransferUser<'a>,
     /// A random key for idempotent creation; reused keys return the
     /// existing transfer.
     pub idempotency_key: &'a str,
@@ -88,19 +128,19 @@ pub struct Transfer {
     pub account_id: String,
     /// The ID of the authorization that created this transfer, if any.
     pub authorization_id: Option<String>,
-    /// The type of transfer (`"debit"` or `"credit"`).
+    /// The direction of the transfer.
     #[serde(rename = "type")]
-    pub transfer_type: String,
-    /// The transfer network (`"ach"` or `"same-day-ach"`).
-    pub network: String,
+    pub transfer_type: TransferType,
+    /// The transfer network.
+    pub network: TransferNetwork,
     /// The transfer amount as a decimal string.
     pub amount: String,
     /// The transfer description, visible on the bank statement.
     pub description: String,
     /// The status of the transfer (e.g. `"pending"`, `"posted"`).
     pub status: String,
-    /// The ACH class (`"ppd"`, `"ccd"`, `"tel"`, or `"web"`).
-    pub ach_class: String,
+    /// The ACH class.
+    pub ach_class: TransferAchClass,
     /// The datetime the transfer was created, in RFC 3339 format.
     pub created: String,
 }

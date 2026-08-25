@@ -8,6 +8,7 @@ use crate::models::payment_initiation::{
     RecipientCreateResponse, RecipientGetResponse,
 };
 use crate::{PlaidClient, PlaidError};
+use rust_decimal::Decimal;
 
 impl PlaidClient {
     /// Call `/payment_initiation/recipient/create` to create a payment
@@ -61,7 +62,7 @@ impl PlaidClient {
         &self,
         recipient_id: &str,
         reference: &str,
-        amount_value: f64,
+        amount_value: Decimal,
         currency: &str,
     ) -> Result<PaymentCreateResponse, PlaidError> {
         let request = PaymentInitiationPaymentCreateRequest {

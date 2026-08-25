@@ -3,6 +3,7 @@ mod server;
 
 use plaid_client_rs::models::link::{LinkTokenCreateRequest, LinkTokenUser};
 use plaid_client_rs::{Config, Environment, PlaidClient};
+use rust_decimal::dec;
 use secrecy::{ExposeSecret, SecretString};
 use server::PlaidMockServer;
 
@@ -82,7 +83,7 @@ async fn accounts_balance_get_succeeds() {
         .unwrap();
 
     let balances = &response.accounts[0].balances;
-    assert_eq!(balances.current, Some(110.0));
+    assert_eq!(balances.current, Some(dec!(110.0)));
     assert_eq!(balances.iso_currency_code.as_deref(), Some("USD"));
 }
 

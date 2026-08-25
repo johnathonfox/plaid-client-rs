@@ -1,5 +1,6 @@
 //! Models for the Transactions product endpoints.
 
+use rust_decimal::Decimal;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +28,8 @@ pub struct Transaction {
     /// The Plaid account ID this transaction belongs to.
     pub account_id: String,
     /// The transaction amount. Positive values move money out of the account.
-    pub amount: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub amount: Decimal,
     /// The date of the transaction (YYYY-MM-DD).
     pub date: String,
     /// The transaction description.
