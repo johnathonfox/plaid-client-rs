@@ -99,3 +99,30 @@ async fn accounts_get_returns_api_error() {
         PlaidError::Api { ref error_code, .. } if error_code == "INVALID_ACCESS_TOKEN"
     ));
 }
+
+#[tokio::test]
+async fn accounts_get_reads_mask_limit_and_item_error() {
+    let mock = PlaidMockServer::new().await;
+    mock.mock_ok_raw(
+        "/accounts/get",
+        r#"{"accounts":[{"account_id":"cc-1","name":"Card","type":"credit","subtype":"credit card",
+            "mask":"3333","balances":{"available":null,"current":410.5,"limit":2000,
+            "iso_currency_code":"USD","unofficial_currency_code":null}}],
+           "item":{"item_id":"item-1","institution_id":"ins_1","webhook":null,
+            "available_products":[],"billed_products":["transactions"],
+            "error":{"error_type":"ITEM_ERROR","error_code":"ITEM_LOGIN_REQUIRED",
+             "error_message":"the login details of this item have changed","display_message":null}},
+           "request_id":"req-1"}"#,
+    )
+    .await;
+
+    let client = PlaidClient::new(test_config(&mock.uri())).unwrap();
+    let r = client.accounts_get(&test_access_token()).await.unwrap();
+    let a = &r.accounts[0];
+    assert_eq!(a.mask.as_deref(), Some("3333"));
+    assert_eq!(a.balances.limit.unwrap().to_string(), "2000");
+    assert_eq!(a.balances.current.unwrap().to_string(), "410.5");
+    let e = r.item.error.as_ref().unwrap();
+    assert_eq!(e.error_code, "ITEM_LOGIN_REQUIRED");
+    assert_eq!(e.display_message, None);
+}

@@ -46,6 +46,25 @@ pub struct Item {
     pub available_products: Vec<String>,
     /// The products that have been billed for the item.
     pub billed_products: Vec<String>,
+    /// The item's current error, e.g. `ITEM_LOGIN_REQUIRED` when the user
+    /// must re-authenticate through Link update mode. `None` when healthy.
+    #[serde(default)]
+    pub error: Option<ItemError>,
+}
+
+/// An error attached to an [`Item`] (Plaid's `item.error` object).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ItemError {
+    /// The broad error category (e.g. `ITEM_ERROR`).
+    pub error_type: String,
+    /// The specific error code (e.g. `ITEM_LOGIN_REQUIRED`).
+    pub error_code: String,
+    /// A developer-oriented description of the error.
+    #[serde(default)]
+    pub error_message: Option<String>,
+    /// A user-facing message, when Plaid provides one.
+    #[serde(default)]
+    pub display_message: Option<String>,
 }
 
 /// Response from `/item/get`.
