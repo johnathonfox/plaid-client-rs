@@ -1,18 +1,76 @@
 name: Release
 
+# Publishes the crate to crates.io. Two ways in:
+#
+# - Push a `vX.Y.Z` tag. The tag must match Cargo.toml's version.
+# - Run this workflow by hand (Actions -> Release -> Run workflow, or the
+#   workflow_dispatch API). It publishes the version in Cargo.toml on the
+#   chosen branch, then creates the matching `vX.Y.Z` tag itself. Useful from
+#   environments that can dispatch a workflow but cannot push tags.
+#
+# Either way the full gate (fmt, clippy, tests, docs, dry run) runs first; a
+# red step publishes nothing. A version already on crates.io is refused before
+# anything is uploaded. Needs the CARGO_REGISTRY_TOKEN repository secret.
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   publish:
-    name: Publish to crates.io
+    name: verify and publish to crates.io
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to create the tag on a manual run
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -eu
+          version=$(cargo metadata --no-deps --format-version 1 \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match Cargo.toml version ${version}"
+            exit 1
+          fi
+          if [ "$GITHUB_REF_TYPE" != "tag" ] && git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "::error::tag v$version already exists; bump the version in Cargo.toml"
+            exit 1
+          fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' -A "plaid-client-rs-release" \
+            "https://crates.io/api/v1/crates/plaid-client-rs/$version")
+          if [ "$code" = "200" ]; then
+            echo "::error::plaid-client-rs $version is already on crates.io"
+            exit 1
+          fi
+
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --all-targets
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
       - run: cargo publish --dry-run
-      - run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish
+        run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Tag the published commit (manual runs)
+        if: github.ref_type != 'tag'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "plaid-client-rs $VERSION"
+          git push origin "v$VERSION"
