@@ -19,6 +19,10 @@ pub struct Account {
     pub account_type: String,
     /// The account subtype (e.g. `checking`, `savings`).
     pub subtype: Option<String>,
+    /// The last 2-4 alphanumeric characters of the account number, when
+    /// the institution provides them.
+    #[serde(default)]
+    pub mask: Option<String>,
     /// The current balance information.
     pub balances: Balances,
 }
@@ -32,6 +36,14 @@ pub struct Balances {
     /// The total amount of funds in the account.
     #[serde(default, with = "crate::models::common::decimal_option_json")]
     pub current: Option<Decimal>,
+    /// The credit limit for credit accounts, or the overdraft limit for
+    /// depository accounts, when the institution reports one.
+    #[serde(default, with = "crate::models::common::decimal_option_json")]
+    pub limit: Option<Decimal>,
     /// The ISO-4217 currency code (e.g. `USD`).
     pub iso_currency_code: Option<String>,
+    /// The unofficial currency code (e.g. a cryptocurrency) when
+    /// `iso_currency_code` is `None`.
+    #[serde(default)]
+    pub unofficial_currency_code: Option<String>,
 }

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `Account::mask`, `Balances::limit`, `Balances::unofficial_currency_code`, and `Item::error` (`ItemError`, e.g. `ITEM_LOGIN_REQUIRED`)
 - Repository scaffolding and CI pipeline
 - Core `PlaidClient` with async HTTP support
 - Request pipeline: JSON POST with `client_id`/`secret` body injection and Plaid error-body mapping to `PlaidError::Api`
