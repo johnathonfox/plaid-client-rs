@@ -175,3 +175,40 @@ async fn investments_transactions_get_sends_date_range() {
     assert_eq!(body["start_date"], "2026-01-01");
     assert_eq!(body["end_date"], "2026-06-30");
 }
+
+#[tokio::test]
+async fn holdings_money_and_quantities_are_exact_decimals() {
+    // Required and optional decimal fields, decoded through the whole
+    // client pipeline (middleware included) from the raw body. Fractional
+    // share quantities are where f64 actually bites: through it this one
+    // reads 0.12345678901234568.
+    let mock = PlaidMockServer::new().await;
+    mock.mock_ok_raw(
+        "/investments/holdings/get",
+        r#"{"accounts":[{"account_id":"inv-1","name":"Brokerage","type":"investment",
+            "balances":{"available":null,"current":10000.07}}],
+           "holdings":[{"account_id":"inv-1","security_id":"sec-1","quantity":0.123456789012345678,
+            "cost_basis":2.675,"institution_value":33.33,"institution_price":111.1,
+            "iso_currency_code":"USD"}],
+           "securities":[{"security_id":"sec-1","close_price":111.1}],
+           "request_id":"req-exact"}"#,
+    )
+    .await;
+
+    let client = PlaidClient::new(test_config(&mock.uri())).unwrap();
+    let r = client
+        .investments_holdings_get(&test_access_token())
+        .await
+        .unwrap();
+    let h = &r.holdings[0];
+    assert_eq!(h.quantity.to_string(), "0.123456789012345678");
+    assert_eq!(h.cost_basis.unwrap().to_string(), "2.675");
+    assert_eq!(h.institution_value.to_string(), "33.33");
+    assert_eq!(h.institution_price.to_string(), "111.1");
+    assert_eq!(
+        r.accounts[0].balances.current.unwrap().to_string(),
+        "10000.07"
+    );
+    assert_eq!(r.accounts[0].balances.available, None);
+    assert_eq!(r.securities[0].close_price.unwrap().to_string(), "111.1");
+}

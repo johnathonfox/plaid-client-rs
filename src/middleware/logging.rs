@@ -1,8 +1,7 @@
 //! Request/response logging middleware built on `tracing`.
 
-use super::{Middleware, Next, Request};
+use super::{Middleware, Next, Request, ResponseBody};
 use crate::PlaidError;
-use serde_json::Value;
 
 /// Logs each request and its outcome at `DEBUG` level via `tracing`.
 ///
@@ -13,7 +12,7 @@ pub struct TracingLogger;
 
 #[async_trait::async_trait]
 impl Middleware for TracingLogger {
-    async fn handle(&self, request: &Request, next: &Next<'_>) -> Result<Value, PlaidError> {
+    async fn handle(&self, request: &Request, next: &Next<'_>) -> Result<ResponseBody, PlaidError> {
         tracing::debug!(path = %request.path, "plaid request");
         let result = next.run(request).await;
         match &result {

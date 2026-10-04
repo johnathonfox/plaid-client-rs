@@ -20,7 +20,7 @@ pub struct RecipientBacs {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaymentAmount {
     /// The amount of the payment, with at most two digits of precision.
-    #[serde(with = "rust_decimal::serde::float")]
+    #[serde(with = "crate::models::common::decimal_json")]
     pub value: Decimal,
     /// The ISO-4217 currency code of the payment (e.g. `GBP`, `EUR`).
     pub currency: String,

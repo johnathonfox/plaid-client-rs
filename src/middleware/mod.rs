@@ -16,8 +16,16 @@ pub use retry::RetryPolicy;
 
 use crate::client::PlaidClientInner;
 use crate::PlaidError;
+use serde_json::value::RawValue;
 use serde_json::Value;
 use std::fmt::Debug;
+
+/// A successful response body, kept as the raw JSON text.
+///
+/// Typed models are decoded from this text directly, so money fields read
+/// their exact decimal digits. A [`serde_json::Value`] would already have
+/// decoded every number to `f64` (ADR-0006).
+pub type ResponseBody = Box<RawValue>;
 use std::sync::Arc;
 
 /// A single API call passed through the middleware chain.
@@ -65,7 +73,7 @@ impl Next<'_> {
     ///
     /// Propagates any error from downstream middleware or the terminal
     /// sender.
-    pub async fn run(&self, request: &Request) -> Result<Value, PlaidError> {
+    pub async fn run(&self, request: &Request) -> Result<ResponseBody, PlaidError> {
         match self.chain.split_first() {
             Some((head, tail)) => {
                 head.handle(
@@ -96,5 +104,5 @@ pub trait Middleware: Debug + Send + Sync {
     ///
     /// Propagates downstream errors; middleware may also return its own
     /// [`PlaidError`] (e.g. after exhausting retries).
-    async fn handle(&self, request: &Request, next: &Next<'_>) -> Result<Value, PlaidError>;
+    async fn handle(&self, request: &Request, next: &Next<'_>) -> Result<ResponseBody, PlaidError>;
 }

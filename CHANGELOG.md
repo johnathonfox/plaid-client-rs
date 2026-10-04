@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Daily CI watch for upstream OpenAPI spec changes (`.github/workflows/openapi-spec-watch.yml`)
 
 ### Changed
+- **Money decodes exactly** (ADR-0006): decimal fields read the raw JSON token instead of passing through `f64`, which corrupted values past ~15 significant digits (e.g. fractional share quantities). The middleware chain now carries responses as `middleware::ResponseBody` (`Box<RawValue>`) instead of `serde_json::Value`, so custom `Middleware` impls return that type. `IdentityAccount` decodes by hand rather than through `#[serde(flatten)]`.
 - `PlaidError::Api` now carries the HTTP `status`; non-Plaid error bodies map to the new `PlaidError::UnexpectedStatus`, and 2xx decode failures to `PlaidError::Decode`
 - `RetryPolicy` retries by HTTP status (429/5xx) and connection errors only; timeouts and decode failures are no longer retried, so non-idempotent POSTs can't be duplicated by replay
 - `middleware::Request` is no longer `Clone` and its `Debug` redacts the body (it carries injected credentials)
