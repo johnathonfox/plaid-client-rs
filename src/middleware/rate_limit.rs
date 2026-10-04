@@ -1,8 +1,7 @@
 //! Rate-limiting middleware.
 
-use super::{Middleware, Next, Request};
+use super::{Middleware, Next, Request, ResponseBody};
 use crate::PlaidError;
-use serde_json::Value;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
@@ -29,7 +28,7 @@ impl RateLimiter {
 
 #[async_trait::async_trait]
 impl Middleware for RateLimiter {
-    async fn handle(&self, request: &Request, next: &Next<'_>) -> Result<Value, PlaidError> {
+    async fn handle(&self, request: &Request, next: &Next<'_>) -> Result<ResponseBody, PlaidError> {
         let mut guard = self.last_release.lock().await;
         if let Some(last) = *guard {
             let elapsed = last.elapsed();

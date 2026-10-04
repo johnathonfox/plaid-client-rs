@@ -1,11 +1,11 @@
 //! The main Plaid API client.
 
-use crate::middleware::{Next, Request};
+use crate::middleware::{Next, Request, ResponseBody};
 use crate::{Config, PlaidError};
 use reqwest::Client;
 use secrecy::{ExposeSecret, SecretString};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::value::RawValue;
 use std::borrow::Cow;
 use std::sync::Arc;
 
@@ -34,7 +34,10 @@ struct PlaidErrorBody {
 
 /// The terminal send at the end of the middleware chain: performs the
 /// actual HTTP POST and maps the response.
-pub(crate) async fn send(inner: &PlaidClientInner, request: &Request) -> Result<Value, PlaidError> {
+pub(crate) async fn send(
+    inner: &PlaidClientInner,
+    request: &Request,
+) -> Result<ResponseBody, PlaidError> {
     let url = format!("{}{}", inner.base_url().trim_end_matches('/'), request.path);
     // Transport errors only; response decoding is mapped separately so
     // retry logic can tell "never reached the server" apart from
@@ -42,7 +45,8 @@ pub(crate) async fn send(inner: &PlaidClientInner, request: &Request) -> Result<
     let response = inner.http.post(&url).json(&request.body).send().await?;
 
     if response.status().is_success() {
-        response.json::<Value>().await.map_err(PlaidError::Decode)
+        let text = response.text().await.map_err(PlaidError::Decode)?;
+        Ok(RawValue::from_string(text)?)
     } else {
         let status = response.status();
         let text = response.text().await.map_err(PlaidError::Decode)?;
@@ -126,8 +130,8 @@ impl PlaidClient {
             chain: &self.inner.config.middleware,
             client: &self.inner,
         };
-        let value = next.run(&request).await?;
-        Ok(serde_json::from_value(value)?)
+        let body = next.run(&request).await?;
+        Ok(serde_json::from_str(body.get())?)
     }
 
     /// Returns the client ID.

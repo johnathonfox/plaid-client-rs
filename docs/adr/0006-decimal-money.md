@@ -36,9 +36,20 @@ users don't need a direct dependency.
   `BigDecimal`, and the Rust `rplaid` client offers the same conversion
   via a `decimal` feature.
 - **Negative**: Adds the `rust_decimal` dependency.
-- **Negative**: `serde-with-float` converts through `f64` at the JSON
-  boundary, so extreme values (>2^53 mantissa) can lose precision on
-  the wire; acceptable for Plaid's data ranges.
+- **Superseded (2026-10-04)**: decoding originally went through `f64`
+  (`rust_decimal::serde::float`, and the client decoded every response
+  into a `serde_json::Value` first). Ordinary two-decimal amounts survive
+  that round trip, but values past ~15 significant digits do not: a
+  fractional share quantity of `0.123456789012345678` read back as
+  `0.12345678901234568`. Decoding now reads the raw JSON token
+  (`models::common::decimal_json` / `decimal_option_json`, via
+  `serde_json::value::RawValue`), and the middleware chain carries the
+  response as raw text (`middleware::ResponseBody`), so no money field
+  passes through `f64` on the way in. Consequences: these fields must be
+  decoded by the `serde_json` deserializer itself, not through a `Value`
+  and not under `#[serde(flatten)]`; `IdentityAccount`, which flattens
+  `Account`, decodes by hand for that reason. Serialization still writes
+  JSON numbers.
 
 ## Alternatives Considered
 - **Keep `f64`** (plaid-node, plaid-python, and generated Rust clients

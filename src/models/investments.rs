@@ -35,16 +35,16 @@ pub struct Holding {
     /// The Plaid security ID of the held security.
     pub security_id: String,
     /// The quantity of the security held.
-    #[serde(with = "rust_decimal::serde::float")]
+    #[serde(with = "crate::models::common::decimal_json")]
     pub quantity: Decimal,
     /// The total cost basis of the holding, if available.
     #[serde(default, with = "crate::models::common::decimal_option_json")]
     pub cost_basis: Option<Decimal>,
     /// The value of the holding, as reported by the institution.
-    #[serde(with = "rust_decimal::serde::float")]
+    #[serde(with = "crate::models::common::decimal_json")]
     pub institution_value: Decimal,
     /// The price of the security, as reported by the institution.
-    #[serde(with = "rust_decimal::serde::float")]
+    #[serde(with = "crate::models::common::decimal_json")]
     pub institution_price: Decimal,
     /// The ISO-4217 currency code of the institution price and value.
     pub iso_currency_code: Option<String>,
@@ -84,13 +84,13 @@ pub struct InvestmentTransaction {
     pub security_id: Option<String>,
     /// The total value of the transaction (positive for buys, negative
     /// for sells).
-    #[serde(with = "rust_decimal::serde::float")]
+    #[serde(with = "crate::models::common::decimal_json")]
     pub amount: Decimal,
     /// The price of the security at the time of the transaction.
-    #[serde(with = "rust_decimal::serde::float")]
+    #[serde(with = "crate::models::common::decimal_json")]
     pub price: Decimal,
     /// The number of units transacted.
-    #[serde(with = "rust_decimal::serde::float")]
+    #[serde(with = "crate::models::common::decimal_json")]
     pub quantity: Decimal,
     /// The date of the transaction (`YYYY-MM-DD`).
     pub date: String,

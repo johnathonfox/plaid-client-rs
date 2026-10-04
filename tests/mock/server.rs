@@ -36,6 +36,21 @@ impl PlaidMockServer {
             .await;
     }
 
+    /// Mock a successful `POST {endpoint}` returning `body` byte for byte.
+    ///
+    /// For exactness tests: `set_body_json` would re-print the numbers
+    /// through `serde_json::Value`, which is the very float round-trip
+    /// under test.
+    pub async fn mock_ok_raw(&self, endpoint: &str, body: &str) {
+        Mock::given(method("POST"))
+            .and(path(endpoint))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(body.to_owned(), "application/json"),
+            )
+            .mount(&self.server)
+            .await;
+    }
+
     /// Mock `POST {endpoint}` failing `failures` times with a Plaid
     /// `API_ERROR` body before falling through to an earlier-mounted mock.
     ///

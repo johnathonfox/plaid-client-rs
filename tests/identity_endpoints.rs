@@ -182,3 +182,25 @@ async fn identity_get_returns_api_error() {
 
     assert!(result.is_err());
 }
+
+#[tokio::test]
+async fn identity_balances_are_exact_decimals() {
+    // The hand-written IdentityAccount decoder must not let the balance
+    // through a float (ADR-0006). Through f64 this balance reads
+    // 12345678901234.568.
+    let mock = PlaidMockServer::new().await;
+    mock.mock_ok_raw(
+        "/identity/get",
+        r#"{"accounts":[{"account_id":"acc-1","name":"Checking","type":"depository",
+            "balances":{"available":0.1,"current":12345678901234.567,"iso_currency_code":"USD"},
+            "owners":[]}],"request_id":"req-exact"}"#,
+    )
+    .await;
+
+    let client = PlaidClient::new(test_config(&mock.uri())).unwrap();
+    let response = client.identity_get(&test_access_token()).await.unwrap();
+    let balances = &response.accounts[0].account.balances;
+    assert_eq!(balances.available.unwrap().to_string(), "0.1");
+    assert_eq!(balances.current.unwrap().to_string(), "12345678901234.567");
+    assert!(response.accounts[0].owners.is_empty());
+}

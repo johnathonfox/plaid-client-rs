@@ -79,16 +79,40 @@ pub struct IdentityOwner {
 
 /// An account with identity (account holder) information.
 ///
-/// Reuses the shared [`Account`] model via `#[serde(flatten)]`;
-/// `/identity/get` returns full account objects plus owners.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Reuses the shared [`Account`] model; `/identity/get` returns full
+/// account objects plus owners on the same JSON object.
+///
+/// Serialized with `#[serde(flatten)]`, but deserialized by hand: flatten
+/// buffers the object, which would hand the exact-decimal balance fields
+/// already-decoded floats (ADR-0006). Instead the object is captured as raw
+/// text once and both halves are decoded from it.
+#[derive(Debug, Clone, Serialize)]
 pub struct IdentityAccount {
     /// The account fields shared with other products.
     #[serde(flatten)]
     pub account: Account,
     /// The owners (account holders) of the account.
-    #[serde(default)]
     pub owners: Vec<IdentityOwner>,
+}
+
+impl<'de> Deserialize<'de> for IdentityAccount {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error as _;
+
+        #[derive(Deserialize)]
+        struct Owners {
+            #[serde(default)]
+            owners: Vec<IdentityOwner>,
+        }
+
+        let raw: Box<serde_json::value::RawValue> = Deserialize::deserialize(deserializer)?;
+        let account: Account = serde_json::from_str(raw.get()).map_err(D::Error::custom)?;
+        let Owners { owners } = serde_json::from_str(raw.get()).map_err(D::Error::custom)?;
+        Ok(Self { account, owners })
+    }
 }
 
 /// Response from `/identity/get`.

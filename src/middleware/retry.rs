@@ -1,8 +1,7 @@
 //! Retry middleware with exponential backoff.
 
-use super::{Middleware, Next, Request};
+use super::{Middleware, Next, Request, ResponseBody};
 use crate::PlaidError;
-use serde_json::Value;
 use std::time::Duration;
 
 /// Retries failed requests with exponential backoff.
@@ -53,7 +52,7 @@ impl RetryPolicy {
 
 #[async_trait::async_trait]
 impl Middleware for RetryPolicy {
-    async fn handle(&self, request: &Request, next: &Next<'_>) -> Result<Value, PlaidError> {
+    async fn handle(&self, request: &Request, next: &Next<'_>) -> Result<ResponseBody, PlaidError> {
         let mut attempt = 0;
         loop {
             attempt += 1;

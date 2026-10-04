@@ -28,7 +28,7 @@ pub struct Transaction {
     /// The Plaid account ID this transaction belongs to.
     pub account_id: String,
     /// The transaction amount. Positive values move money out of the account.
-    #[serde(with = "rust_decimal::serde::float")]
+    #[serde(with = "crate::models::common::decimal_json")]
     pub amount: Decimal,
     /// The date of the transaction (YYYY-MM-DD).
     pub date: String,
